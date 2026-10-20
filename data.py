@@ -40,6 +40,7 @@ def main():
 
                 previous_tag = "O"
 
+                # Check to make sure every I- tag is properly preceded by a B- (begin) or I- tag of same entity
                 for tag in ner_tags:
                     if tag.startswith("I-"):
                         entity_type = tag[2:]
@@ -58,12 +59,14 @@ def main():
 
                 token_count += len(tokens)
 
+                # Count number of B- tags for each entity type
                 for tag in ner_tags:
                     if tag == "O":
                         outside_count += 1
                     elif tag.startswith("B-"):
                         entity_counts[tag[2:]] += 1
 
+                # Write json objects
                 record = {
                     "id": f"{split_name}-{index}",
                     "document_id": example["document_id"],
