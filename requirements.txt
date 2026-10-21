@@ -1,2 +1,6 @@
 datasets==4.5.0
 sklearn_crfsuite
+transformers
+torch
+accelerate
+seqeval
