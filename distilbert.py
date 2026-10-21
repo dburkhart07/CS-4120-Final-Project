@@ -19,9 +19,8 @@ EPOCHS=2
 LEARNING_RATE = 2e-5
 BATCH_SIZE =16
 
-
-#reads one of the jsonl files from data.py, one sentence per line
 def load_split(name):
+
     with open(f"data/{name}.jsonl", encoding="utf-8") as file:
         records=[]
 
@@ -36,19 +35,21 @@ validation_data = load_split( "validation")
 test_data = load_split("test")
 
 # build the label list from the training tags
-labels = []
+labels =[]
 
 for record in train_data:
     for tag in record["ner_tags"]:
         if tag not in labels:
 
             labels.append(tag)
+
 labels.sort()
 
 label2id = {}
 id2label= {}
 
 for i in range(len(labels)):
+
     label2id[labels[i]] = i
     id2label[i] = labels[i]
 
@@ -56,16 +57,17 @@ tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
 
 # turns words into distilbert tokens and lines the labels up with them
 def tokenize_and_align(batch):
-    # split each word into subword peices
+
     encoded = tokenizer(batch["tokens"], is_split_into_words=True, truncation=True)
 
     all_labels = []
+
     for i, tags in enumerate(batch["ner_tags"]):
         aligned = []
 
         previous_word=None
         for word_id in encoded.word_ids(batch_index=i):
-            # only the first piece of a word keeps its label
+
             if word_id is None or word_id == previous_word:
                 aligned.append(-100)
             else:
@@ -81,6 +83,7 @@ def tokenize_and_align(batch):
 
 # turns the sentences into model inputs like token ids + aligned labels
 def to_dataset(records):
+
     dataset = Dataset.from_list(records)
     return dataset.map(
         tokenize_and_align, batched=True, remove_columns=dataset.column_names
@@ -132,11 +135,12 @@ model = AutoModelForTokenClassification.from_pretrained(
 )
 
 # settings for how the model gets trained
-training_args = TrainingArguments(
+training_args= TrainingArguments(
     output_dir = "distilbert-output", 
     num_train_epochs=EPOCHS,
     learning_rate=LEARNING_RATE,
-    per_device_train_batch_size = BATCH_SIZE,
+
+    per_device_train_batch_size=BATCH_SIZE,
     per_device_eval_batch_size =BATCH_SIZE,
     eval_strategy="epoch",  
     save_strategy ="no",  
@@ -145,7 +149,7 @@ training_args = TrainingArguments(
 )
 
 # the trainer runs the training loop for us
-trainer = Trainer(
+trainer =Trainer(
     model =model,
     args =training_args,
     train_dataset = train_dataset,
@@ -165,13 +169,14 @@ output =trainer.predict(test_dataset)
 inference_time = time.time() - start
 
 print( "\ntest results")
+
 print(f"precision: {output.metrics['test_precision']:.4f}")
 print(f"recall: {output.metrics['test_recall']:.4f}")
 print(f"f1: {output.metrics['test_f1']:.4f}")
+
 print(f"training time: {train_time:.1f}s")
 print(f"inference time: {inference_time:.1f}s")
 
-# per entity breakdown (PER, ORG, LOC, MISC)
 true_tags, pred_tags = to_tag_sequences(output.predictions, output.label_ids)
 print("\nper entity results")
 print(classification_report(true_tags, pred_tags, digits=4))
