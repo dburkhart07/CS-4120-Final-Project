@@ -1,6 +1,8 @@
 import sklearn_crfsuite
 from sklearn_crfsuite import metrics
 import json
+import time
+from seqeval.metrics import classification_report
 
 
 def word2features(sentence, i):
@@ -66,7 +68,9 @@ y_train = [record["ner_tags"] for record in train_data]
 
 crf = sklearn_crfsuite.CRF(algorithm='lbfgs', c1=0.1, c2=0.1, max_iterations=100, all_possible_states=True)
 
+train_start = time.time()
 crf.fit(X_train, y_train)
+train_time = time.time() - train_start
 
 # Load test data
 with open("data/test.jsonl", encoding="utf-8") as file:
@@ -76,9 +80,15 @@ X_test = prepare_data_for_crf([record["tokens"] for record in test_data])
 y_test = [record["ner_tags"] for record in test_data]
 
 # Test the model
+predict_start = time.time()
 y_pred = crf.predict(X_test)
+predict_time = time.time() - predict_start
 
 labels = [l for l in crf.classes_ if l != 'O']
 print(metrics.flat_classification_report(y_test, y_pred, labels=labels, digits=3))
+print(classification_report(y_test, y_pred, digits=3))
+
+print(f"Training time: {train_time:.1f}s")
+print(f"Inference time: {predict_time:.1f}s")
 
 
